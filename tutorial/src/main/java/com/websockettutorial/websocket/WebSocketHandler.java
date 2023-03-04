@@ -58,8 +58,26 @@ public class WebSocketHandler extends TextWebSocketHandler {
         super.handleTransportError(session, exception);
     }
 
+    /*
+    소켓 연결 종료시 세션 저장소에서 연결이 끊긴 사용자를 삭제한다.
+    다른 사용자들에게 접속 종료를 알린다.
+     */
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-        super.afterConnectionClosed(session, status);
+
+        String sessionId = session.getId();
+        sessions.remove(sessionId);
+
+        final Message message = new Message();
+        message.closeConnect();
+        message.setSender(sessionId);
+
+        sessions.values().forEach(s -> {
+            try {
+                s.sendMessage(new TextMessage(mapper.writeValueAsString(message)));
+            }catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 }
